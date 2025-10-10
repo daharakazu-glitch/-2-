@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語スピーキング練習 | イラスト描写</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .pulsing-dot {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        #pdfCanvas {
+            max-height: 50vh;
+            width: auto;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">英語イラスト描写スピーキング練習</h1>
+            <p class="text-gray-600 mt-2">イラストを説明するスピーキング力をAIと一緒に高めましょう。</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+            <!-- Step 1: File Upload -->
+            <div id="step1" class="mb-6">
+                <h2 class="text-xl font-semibold mb-3 text-indigo-600">ステップ1：イラストまたはPDFをアップロード</h2>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors" id="dropzone">
+                    <input type="file" id="fileUpload" accept="image/*,application/pdf" class="hidden">
+                    <div id="upload-prompt">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-600">
+                            <span class="font-medium text-indigo-600">ファイルを選択</span>するか、ドラッグ＆ドロップしてください
+                        </p>
+                        <p class="text-xs text-gray-500">PNG, JPG, PDFなど</p>
+                    </div>
+                    <div id="image-preview-container" class="hidden">
+                        <img id="imagePreview" class="max-h-64 mx-auto rounded-lg shadow-md" alt="アップロードされた画像">
+                        <p class="text-sm text-gray-500 mt-2">画像を変更するには、ここをクリックまたはドラッグ＆ドロップしてください。</p>
+                    </div>
+                    <div id="pdf-preview-container" class="hidden text-center">
+                        <canvas id="pdfCanvas" class="mx-auto rounded-lg shadow-md border"></canvas>
+                        <div id="pdf-nav" class="flex justify-center items-center mt-2 space-x-4">
+                            <button id="pdf-prev" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded-l disabled:opacity-50 disabled:cursor-not-allowed">＜</button>
+                            <span id="pdf-page-info" class="text-sm text-gray-600">ページ <span id="pdf-page-num"></span> / <span id="pdf-page-count"></span></span>
+                            <button id="pdf-next" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded-r disabled:opacity-50 disabled:cursor-not-allowed">＞</button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">別のファイルをアップロードするには、ここをクリックまたはドラッグ＆ドロップしてください。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Recording -->
+            <div id="step2" class="mb-6 opacity-50 pointer-events-none">
+                 <h2 class="text-xl font-semibold mb-3 text-indigo-600">ステップ2：英語で説明を録音</h2>
+                 <div class="flex items-center justify-center space-x-4">
+                     <button id="startButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none">
+                         録音開始
+                     </button>
+                     <button id="stopButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none" disabled>
+                         録音停止
+                     </button>
+                     <div id="recording-indicator" class="hidden flex items-center space-x-2">
+                         <div class="w-4 h-4 bg-red-500 rounded-full pulsing-dot"></div>
+                         <span class="text-red-500 font-medium">録音中...</span>
+                     </div>
+                 </div>
+                 <p id="speech-recognition-error" class="text-red-500 text-center mt-2 hidden">音声認識がお使いのブラウザではサポートされていません。</p>
+                 <div id="transcription-container" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[100px] hidden">
+                    <p class="text-sm text-gray-500 mb-1">文字起こし結果：</p>
+                    <p id="transcription" class="text-gray-800 whitespace-pre-wrap"></p>
+                 </div>
+            </div>
+
+            <!-- Step 3: Evaluation -->
+            <div id="step3" class="text-center opacity-50 pointer-events-none">
+                <h2 class="text-xl font-semibold mb-3 text-indigo-600">ステップ3：AIによる評価</h2>
+                <button id="evaluateButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none">
+                    評価する
+                </button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-container" class="mt-8 pt-6 border-t border-gray-200 hidden">
+                 <h2 class="text-2xl font-bold text-center mb-6 text-gray-900">評価結果</h2>
+                 <div id="loading-indicator" class="flex justify-center items-center mb-4 hidden">
+                    <div class="loader"></div>
+                    <p class="ml-4 text-gray-600">AIが評価中です。しばらくお待ちください...</p>
+                 </div>
+                 <div id="result-content" class="hidden">
+                     <div class="text-center mb-6">
+                         <p class="text-lg text-gray-600">あなたのスコアは...</p>
+                         <p id="score" class="text-7xl font-bold text-indigo-600 my-2">0</p>
+                         <p class="text-lg text-gray-600">/ 100点</p>
+                     </div>
+                     <div class="bg-indigo-50 p-6 rounded-xl">
+                         <h3 class="text-lg font-semibold text-gray-800 mb-2">フィードバック</h3>
+                         <div id="feedback" class="text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
+                     </div>
+                     <div class="text-center mt-6">
+                        <button id="resetButton" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105">
+                            もう一度試す
+                        </button>
+                     </div>
+                 </div>
+            </div>
+        </div>
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>&copy; 2025 AI Speaking Practice. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        // Element references
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const fileUpload = document.getElementById('fileUpload');
+        const dropzone = document.getElementById('dropzone');
+        const uploadPrompt = document.getElementById('upload-prompt');
+        // Image Preview
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('imagePreview');
+        // PDF Preview
+        const pdfPreviewContainer = document.getElementById('pdf-preview-container');
+        const pdfCanvas = document.getElementById('pdfCanvas');
+        const pdfNav = document.getElementById('pdf-nav');
+        const pdfPrev = document.getElementById('pdf-prev');
+        const pdfNext = document.getElementById('pdf-next');
+        const pdfPageNum = document.getElementById('pdf-page-num');
+        const pdfPageCount = document.getElementById('pdf-page-count');
+        
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const transcriptionContainer = document.getElementById('transcription-container');
+        const transcriptionEl = document.getElementById('transcription');
+        const evaluateButton = document.getElementById('evaluateButton');
+        const resultContainer = document.getElementById('result-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultContent = document.getElementById('result-content');
+        const scoreEl = document.getElementById('score');
+        const feedbackEl = document.getElementById('feedback');
+        const resetButton = document.getElementById('resetButton');
+        const speechRecognitionError = document.getElementById('speech-recognition-error');
+
+        let base64ImageData = null;
+        let finalTranscription = '';
+        let pdfDoc = null;
+        let currentPageNum = 1;
+        
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;
+
+        // --- Step 1: File Upload Logic ---
+        dropzone.addEventListener('click', () => fileUpload.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-indigo-500', 'bg-indigo-50');
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            if (e.dataTransfer.files.length) {
+                fileUpload.files = e.dataTransfer.files;
+                handleFileUpload({ target: fileUpload });
+            }
+        });
+        fileUpload.addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type.startsWith('image/')) {
+                displayImage(file);
+            } else if (file.type === 'application/pdf') {
+                displayPdf(file);
+            } else {
+                alert('サポートされていないファイル形式です。画像またはPDFを選択してください。');
+            }
+        }
+        
+        function displayImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageUrl = e.target.result;
+                imagePreview.src = imageUrl;
+                base64ImageData = imageUrl.split(',')[1];
+                
+                uploadPrompt.classList.add('hidden');
+                pdfPreviewContainer.classList.add('hidden');
+                imagePreviewContainer.classList.remove('hidden');
+
+                activateStep(step2);
+                resetStep(step3);
+                resetResults();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayPdf(file) {
+             const reader = new FileReader();
+             reader.onload = (e) => {
+                const loadingTask = pdfjsLib.getDocument({ data: e.target.result });
+                loadingTask.promise.then(pdf => {
+                    pdfDoc = pdf;
+                    currentPageNum = 1;
+                    pdfPageCount.textContent = pdf.numPages;
+                    renderPdfPage(currentPageNum);
+
+                    uploadPrompt.classList.add('hidden');
+                    imagePreviewContainer.classList.add('hidden');
+                    pdfPreviewContainer.classList.remove('hidden');
+                    
+                    activateStep(step2);
+                    resetStep(step3);
+                    resetResults();
+                }, reason => {
+                    console.error(reason);
+                    alert('PDFファイルの読み込みに失敗しました。');
+                });
+             };
+             reader.readAsArrayBuffer(file);
+        }
+
+        async function renderPdfPage(num) {
+            if (!pdfDoc || num < 1 || num > pdfDoc.numPages) return;
+            
+            currentPageNum = num;
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const context = pdfCanvas.getContext('2d');
+            pdfCanvas.height = viewport.height;
+            pdfCanvas.width = viewport.width;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            
+            base64ImageData = pdfCanvas.toDataURL('image/jpeg').split(',')[1];
+            pdfPageNum.textContent = num;
+            pdfPrev.disabled = (num <= 1);
+            pdfNext.disabled = (num >= pdfDoc.numPages);
+        }
+
+        pdfPrev.addEventListener('click', () => {
+            if (currentPageNum > 1) renderPdfPage(currentPageNum - 1);
+        });
+
+        pdfNext.addEventListener('click', () => {
+            if (currentPageNum < pdfDoc.numPages) renderPdfPage(currentPageNum + 1);
+        });
+
+
+        // --- Step 2: Speech Recognition Logic ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let currentFinal = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                         currentFinal += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if(currentFinal) finalTranscription += currentFinal + ' ';
+                transcriptionEl.textContent = finalTranscription + interimTranscript;
+            };
+
+            recognition.onend = () => stopRecording();
+
+        } else {
+            speechRecognitionError.classList.remove('hidden');
+            startButton.disabled = true;
+        }
+
+        startButton.addEventListener('click', () => {
+            if (recognition) {
+                finalTranscription = '';
+                transcriptionEl.textContent = '';
+                transcriptionContainer.classList.remove('hidden');
+                recognition.start();
+                
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                recordingIndicator.classList.remove('hidden');
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (recognition) {
+                recognition.stop();
+            }
+        });
+
+        function stopRecording() {
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            recordingIndicator.classList.add('hidden');
+            
+            if (transcriptionEl.textContent.trim()) {
+                activateStep(step3);
+            } else {
+                resetStep(step3);
+            }
+        }
+
+
+        // --- Step 3: AI Evaluation Logic ---
+        evaluateButton.addEventListener('click', async () => {
+            if (!base64ImageData || !transcriptionEl.textContent.trim()) {
+                alert('画像と文字起こしされたテキストの両方が必要です。');
+                return;
+            }
+
+            resultContainer.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            resultContent.classList.add('hidden');
+
+            try {
+                const responseText = await callGeminiApi();
+                
+                const jsonMatch = responseText.match(/```json([\s\S]*?)```/);
+                if (!jsonMatch) {
+                    throw new Error("APIからのレスポンスに有効なJSONが含まれていません。");
+                }
+
+                const jsonString = jsonMatch[1].trim();
+                const result = JSON.parse(jsonString);
+
+                scoreEl.textContent = result.score;
+                feedbackEl.textContent = result.feedback;
+                
+                loadingIndicator.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error during evaluation:', error);
+                loadingIndicator.classList.add('hidden');
+                feedbackEl.textContent = `評価中にエラーが発生しました：${error.message}\nしばらくしてからもう一度お試しください。`;
+                resultContent.classList.remove('hidden');
+                scoreEl.textContent = 'エラー';
+            }
+        });
+
+        async function callGeminiApi() {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const userText = transcriptionEl.textContent;
+
+            const systemPrompt = `あなたは、実用英語技能検定（英検）2級の二次試験（面接）の、フレンドリーで生徒を励ますのが得意な面接官です。
+あなたの役割は、生徒がおこなったイラスト（3コマの物語）のナレーションを評価することです。評価には、表示されている画像と、生徒のスピーチを文字起こししたテキストを使用します。
+
+# 指示
+1.  **評価基準:** 以下の3つの基準に基づいて、ナレーションを評価してください。
+    * **物語の展開 (40点満点):** ナレーションが、イラストの各場面を論理的につなぎ、一貫性のある物語として成立しているか。時間の経過（例：「One hour later」「The next day」）や因果関係が適切に表現できているか。
+    * **文法と語彙 (30点満点):** 中学校卒業程度（英検3級〜準2級）の基本的な文法（時制、冠詞、前置詞など）を正しく使えているか。イラストの状況を説明するのに適切な語彙が使えているか。
+    * **内容の十分さ (30点満点):** イラストの登場人物の行動、状況、感情などが、物語の展開に必要な範囲で十分に説明されているか。
+
+2.  **採点方法:**
+    * まず、上記の評価基準に沿って厳密に採点し、合計点（100点満点）を算出します。
+    * 次に、生徒の学習意欲を高めるため、算出した合計点に**少しボーナス点（5〜10点程度）を加え、最終的なスコアを甘めに調整してください。** ただし、満点は100点です。
+    * どんなに出来が悪くても、挑戦したことを称え、最低60点は与えるようにしてください。
+
+3.  **フィードバックの作成 (日本語):**
+    * フィードバックは、必ず**日本語で**、丁寧かつ具体的に記述してください。
+    * まず、「良かった点 (Good Points)」として、具体的に褒めるべき点を2〜3点挙げてください。（例：「登場人物の行動をうまく説明できていましたね！」「"look for" という表現が適切でした。」）
+    * 次に、「アドバイス (Suggestions for Improvement)」として、改善できる点を1〜2点、具体的で分かりやすく提案してください。（例：「2コマ目では、『He was surprised to see...』のように感情を表す言葉を入れると、もっと良くなりますよ。」「"a" と "the" の使い分けを復習してみましょう。」）
+
+4.  **出力形式:**
+    * あなたの応答は、必ず以下の構造を持つJSONオブジェクトでなければなりません。説明文や他のフォーマットは一切含めないでください。
+
+\`\`\`json
+{
+  "score": <最終スコア(整数)>,
+  "feedback": "<日本語でのフィードバック文字列>"
+}
+\`\`\`
+`;
+
+            const payload = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [ { role: "user", parts: [ { text: `Please evaluate my description of the image: "${userText}"` }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } } ] } ],
+            };
+            
+            let response;
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
+                            return result.candidates[0].content.parts[0].text;
+                        } else { throw new Error('APIからのレスポンスが不完全です。'); }
+                    } else if (response.status === 429) { 
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                    } else {
+                        const errorBody = await response.text();
+                        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorBody}`);
+                    }
+                } catch (error) {
+                    if (i === 4) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // --- UI Control Logic ---
+        function activateStep(stepElement) {
+            stepElement.classList.remove('opacity-50', 'pointer-events-none');
+        }
+
+        function resetStep(stepElement) {
+             stepElement.classList.add('opacity-50', 'pointer-events-none');
+        }
+        
+        function resetResults() {
+            resultContainer.classList.add('hidden');
+            loadingIndicator.classList.add('hidden');
+            resultContent.classList.add('hidden');
+            scoreEl.textContent = '0';
+            feedbackEl.textContent = '';
+        }
+
+        resetButton.addEventListener('click', () => {
+            base64ImageData = null;
+            finalTranscription = '';
+            pdfDoc = null;
+            currentPageNum = 1;
+            
+            fileUpload.value = '';
+            uploadPrompt.classList.remove('hidden');
+            imagePreviewContainer.classList.add('hidden');
+            pdfPreviewContainer.classList.add('hidden');
+            imagePreview.src = '';
+            
+            transcriptionEl.textContent = '';
+            transcriptionContainer.classList.add('hidden');
+
+            resetStep(step2);
+            resetStep(step3);
+            resetResults();
+        });
+
+    </script>
+</body>
+</html>
