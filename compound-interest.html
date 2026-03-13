@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>複利計算シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card { backdrop-filter: blur(10px); background: rgba(255,255,255,0.95); }
+        input[type="range"] { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 4px; background: #e2e8f0; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #6366f1; cursor: pointer; box-shadow: 0 2px 6px rgba(99,102,241,0.4); }
+        .result-card { transition: all 0.3s ease; }
+        .result-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .comparison-row { transition: background-color 0.2s ease; }
+        .comparison-row:hover { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="gradient-bg text-white py-8 px-4 mb-8 shadow-lg">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">複利計算シミュレーター</h1>
+            <p class="mt-2 text-indigo-100 text-sm sm:text-base">銘柄ごとの想定利回りで、複利の力を可視化しよう</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 pb-16">
+        <!-- Input Section -->
+        <div class="card rounded-2xl shadow-lg p-6 sm:p-8 mb-8">
+            <h2 class="text-lg font-bold text-gray-800 mb-6">シミュレーション設定</h2>
+
+            <!-- Preset Stocks -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">銘柄プリセット</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" id="presetButtons">
+                </div>
+            </div>
+
+            <!-- Custom Input -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="stockName" class="block text-sm font-semibold text-gray-700 mb-1">銘柄名</label>
+                    <input type="text" id="stockName" value="S&P 500" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                </div>
+                <div>
+                    <label for="annualReturn" class="block text-sm font-semibold text-gray-700 mb-1">想定年間利回り（%）</label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="annualReturnSlider" min="0" max="30" step="0.5" value="10" class="flex-1">
+                        <input type="number" id="annualReturn" value="10" min="0" max="100" step="0.5" class="w-24 border border-gray-300 rounded-lg px-3 py-2.5 text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <span class="text-gray-500 font-medium">%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label for="initialAmount" class="block text-sm font-semibold text-gray-700 mb-1">初期投資額（万円）</label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="initialAmountSlider" min="0" max="5000" step="10" value="100" class="flex-1">
+                        <input type="number" id="initialAmount" value="100" min="0" max="100000" step="10" class="w-28 border border-gray-300 rounded-lg px-3 py-2.5 text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <span class="text-gray-500 font-medium text-sm">万円</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="monthlyAmount" class="block text-sm font-semibold text-gray-700 mb-1">毎月の積立額（万円）</label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="monthlyAmountSlider" min="0" max="100" step="0.5" value="5" class="flex-1">
+                        <input type="number" id="monthlyAmount" value="5" min="0" max="1000" step="0.5" class="w-28 border border-gray-300 rounded-lg px-3 py-2.5 text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <span class="text-gray-500 font-medium text-sm">万円</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="years" class="block text-sm font-semibold text-gray-700 mb-1">投資期間（年）</label>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="yearsSlider" min="1" max="50" step="1" value="20" class="flex-1">
+                        <input type="number" id="years" value="20" min="1" max="100" step="1" class="w-28 border border-gray-300 rounded-lg px-3 py-2.5 text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <span class="text-gray-500 font-medium text-sm">年</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button id="addComparison" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-lg transition shadow-md hover:shadow-lg">
+                    比較リストに追加
+                </button>
+                <button id="clearAll" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg transition">
+                    すべてクリア
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" id="summaryCards">
+            <div class="result-card bg-white rounded-xl shadow p-5 text-center">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">元本合計</p>
+                <p class="text-2xl font-extrabold text-gray-800 mt-1" id="totalPrincipal">0 万円</p>
+            </div>
+            <div class="result-card bg-white rounded-xl shadow p-5 text-center">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">運用収益</p>
+                <p class="text-2xl font-extrabold text-green-600 mt-1" id="totalProfit">0 万円</p>
+            </div>
+            <div class="result-card bg-white rounded-xl shadow p-5 text-center">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">最終資産額</p>
+                <p class="text-2xl font-extrabold text-indigo-600 mt-1" id="totalAssets">0 万円</p>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">資産推移グラフ</h2>
+            <div class="relative" style="height: 400px;">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="card rounded-2xl shadow-lg p-4 sm:p-6 mb-8" id="comparisonSection" style="display:none;">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">銘柄比較</h2>
+            <div class="relative" style="height: 400px;">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+            <!-- Comparison Table -->
+            <div class="mt-6 overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200">
+                            <th class="text-left py-3 px-3 font-semibold text-gray-600">銘柄</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">利回り</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">元本合計</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">最終資産額</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">運用収益</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">収益率</th>
+                            <th class="text-center py-3 px-3 font-semibold text-gray-600">削除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Yearly Breakdown -->
+        <div class="card rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">年別推移表</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200">
+                            <th class="text-left py-3 px-3 font-semibold text-gray-600">年</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">元本合計</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">複利運用</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">単利運用</th>
+                            <th class="text-right py-3 px-3 font-semibold text-gray-600">複利効果（差額）</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yearlyTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="text-center text-sm text-gray-400 mt-8">
+            <p>※ このシミュレーションは過去の実績に基づく想定利回りであり、将来のリターンを保証するものではありません。</p>
+        </footer>
+    </div>
+
+    <script>
+        // ===== Preset Data =====
+        const presets = [
+            { name: 'S&P 500', rate: 10 },
+            { name: '全世界株式 (ACWI)', rate: 8 },
+            { name: '日経平均', rate: 7 },
+            { name: 'NASDAQ 100', rate: 13 },
+            { name: '米国債券', rate: 4 },
+            { name: '新興国株式', rate: 9 },
+            { name: '国内REIT', rate: 5 },
+            { name: '定期預金', rate: 0.1 },
+        ];
+
+        const COLORS = [
+            '#6366f1', '#f59e0b', '#10b981', '#ef4444',
+            '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
+        ];
+
+        let comparisonList = [];
+        let mainChart = null;
+        let comparisonChart = null;
+
+        // ===== DOM Elements =====
+        const els = {
+            stockName: document.getElementById('stockName'),
+            annualReturn: document.getElementById('annualReturn'),
+            annualReturnSlider: document.getElementById('annualReturnSlider'),
+            initialAmount: document.getElementById('initialAmount'),
+            initialAmountSlider: document.getElementById('initialAmountSlider'),
+            monthlyAmount: document.getElementById('monthlyAmount'),
+            monthlyAmountSlider: document.getElementById('monthlyAmountSlider'),
+            years: document.getElementById('years'),
+            yearsSlider: document.getElementById('yearsSlider'),
+        };
+
+        // ===== Slider/Input Sync =====
+        function syncSliderInput(slider, input) {
+            slider.addEventListener('input', () => { input.value = slider.value; calculate(); });
+            input.addEventListener('input', () => { slider.value = input.value; calculate(); });
+        }
+        syncSliderInput(els.annualReturnSlider, els.annualReturn);
+        syncSliderInput(els.initialAmountSlider, els.initialAmount);
+        syncSliderInput(els.monthlyAmountSlider, els.monthlyAmount);
+        syncSliderInput(els.yearsSlider, els.years);
+
+        // ===== Preset Buttons =====
+        const presetContainer = document.getElementById('presetButtons');
+        presets.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-medium py-2 px-3 rounded-lg text-sm transition';
+            btn.textContent = `${p.name} (${p.rate}%)`;
+            btn.addEventListener('click', () => {
+                els.stockName.value = p.name;
+                els.annualReturn.value = p.rate;
+                els.annualReturnSlider.value = Math.min(p.rate, 30);
+                calculate();
+            });
+            presetContainer.appendChild(btn);
+        });
+
+        // ===== Compound Interest Calculation =====
+        function computeGrowth(initialMan, monthlyMan, annualRate, totalYears) {
+            const monthlyRate = annualRate / 100 / 12;
+            const compoundData = [];
+            const simpleData = [];
+            const principalData = [];
+
+            let compoundBalance = initialMan;
+            let simpleBalance = initialMan;
+            let totalPrincipal = initialMan;
+
+            compoundData.push(compoundBalance);
+            simpleData.push(simpleBalance);
+            principalData.push(totalPrincipal);
+
+            for (let year = 1; year <= totalYears; year++) {
+                for (let month = 1; month <= 12; month++) {
+                    compoundBalance = compoundBalance * (1 + monthlyRate) + monthlyMan;
+                    totalPrincipal += monthlyMan;
+                }
+                simpleBalance = totalPrincipal * (1 + (annualRate / 100) * year) - (totalPrincipal - initialMan) * (annualRate / 100) * year / 2;
+                // Simple interest: each deposit earns simple interest from its deposit date
+                let simpleCalc = initialMan * (1 + annualRate / 100 * year);
+                for (let m = 1; m <= year * 12; m++) {
+                    const remainingYears = year - m / 12;
+                    simpleCalc += monthlyMan * (1 + annualRate / 100 * Math.max(0, remainingYears));
+                }
+                simpleBalance = simpleCalc;
+
+                compoundData.push(Math.round(compoundBalance * 100) / 100);
+                simpleData.push(Math.round(simpleBalance * 100) / 100);
+                principalData.push(Math.round(totalPrincipal * 100) / 100);
+            }
+
+            return { compoundData, simpleData, principalData };
+        }
+
+        // ===== Format Number =====
+        function formatMan(val) {
+            if (val >= 10000) {
+                return (val / 10000).toFixed(1) + ' 億円';
+            }
+            return Math.round(val).toLocaleString() + ' 万円';
+        }
+
+        // ===== Main Calculation =====
+        function calculate() {
+            const initial = parseFloat(els.initialAmount.value) || 0;
+            const monthly = parseFloat(els.monthlyAmount.value) || 0;
+            const rate = parseFloat(els.annualReturn.value) || 0;
+            const years = parseInt(els.years.value) || 1;
+
+            const { compoundData, simpleData, principalData } = computeGrowth(initial, monthly, rate, years);
+
+            const finalCompound = compoundData[compoundData.length - 1];
+            const finalPrincipal = principalData[principalData.length - 1];
+            const profit = finalCompound - finalPrincipal;
+
+            document.getElementById('totalPrincipal').textContent = formatMan(finalPrincipal);
+            document.getElementById('totalProfit').textContent = '+' + formatMan(profit);
+            document.getElementById('totalAssets').textContent = formatMan(finalCompound);
+
+            // Labels
+            const labels = [];
+            for (let i = 0; i <= years; i++) labels.push(i + '年目');
+
+            // Main Chart
+            if (mainChart) mainChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '複利運用',
+                            data: compoundData,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99,102,241,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 3,
+                            pointRadius: years <= 30 ? 4 : 2,
+                            pointBackgroundColor: '#6366f1',
+                        },
+                        {
+                            label: '単利運用',
+                            data: simpleData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,0.05)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2,
+                            borderDash: [6, 3],
+                            pointRadius: years <= 30 ? 3 : 1,
+                            pointBackgroundColor: '#f59e0b',
+                        },
+                        {
+                            label: '元本合計',
+                            data: principalData,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'rgba(148,163,184,0.05)',
+                            fill: true,
+                            tension: 0,
+                            borderWidth: 2,
+                            borderDash: [3, 3],
+                            pointRadius: years <= 30 ? 2 : 0,
+                            pointBackgroundColor: '#94a3b8',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${formatMan(ctx.parsed.y)}`
+                            }
+                        },
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: val => {
+                                    if (val >= 10000) return (val / 10000).toFixed(1) + '億';
+                                    return val.toLocaleString() + '万';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Yearly Table
+            const tbody = document.getElementById('yearlyTable');
+            tbody.innerHTML = '';
+            for (let i = 0; i <= years; i++) {
+                const diff = compoundData[i] - simpleData[i];
+                const tr = document.createElement('tr');
+                tr.className = 'comparison-row border-b border-gray-100';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-medium text-gray-700">${i}年目</td>
+                    <td class="py-2.5 px-3 text-right text-gray-600">${formatMan(principalData[i])}</td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-indigo-600">${formatMan(compoundData[i])}</td>
+                    <td class="py-2.5 px-3 text-right text-amber-600">${formatMan(simpleData[i])}</td>
+                    <td class="py-2.5 px-3 text-right ${diff >= 0 ? 'text-green-600' : 'text-red-500'} font-medium">${diff >= 0 ? '+' : ''}${formatMan(diff)}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // ===== Comparison =====
+        document.getElementById('addComparison').addEventListener('click', () => {
+            const name = els.stockName.value.trim() || '無名';
+            const rate = parseFloat(els.annualReturn.value) || 0;
+            const initial = parseFloat(els.initialAmount.value) || 0;
+            const monthly = parseFloat(els.monthlyAmount.value) || 0;
+            const years = parseInt(els.years.value) || 1;
+
+            comparisonList.push({ name, rate, initial, monthly, years });
+            updateComparison();
+        });
+
+        document.getElementById('clearAll').addEventListener('click', () => {
+            comparisonList = [];
+            updateComparison();
+        });
+
+        function updateComparison() {
+            const section = document.getElementById('comparisonSection');
+            if (comparisonList.length === 0) {
+                section.style.display = 'none';
+                if (comparisonChart) { comparisonChart.destroy(); comparisonChart = null; }
+                return;
+            }
+            section.style.display = '';
+
+            // Find max years
+            const maxYears = Math.max(...comparisonList.map(c => c.years));
+            const labels = [];
+            for (let i = 0; i <= maxYears; i++) labels.push(i + '年目');
+
+            const datasets = comparisonList.map((item, idx) => {
+                const { compoundData } = computeGrowth(item.initial, item.monthly, item.rate, item.years);
+                return {
+                    label: `${item.name} (${item.rate}%)`,
+                    data: compoundData,
+                    borderColor: COLORS[idx % COLORS.length],
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointRadius: maxYears <= 30 ? 3 : 1,
+                    pointBackgroundColor: COLORS[idx % COLORS.length],
+                };
+            });
+
+            if (comparisonChart) comparisonChart.destroy();
+            const ctx2 = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(ctx2, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${formatMan(ctx.parsed.y)}`
+                            }
+                        },
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: val => {
+                                    if (val >= 10000) return (val / 10000).toFixed(1) + '億';
+                                    return val.toLocaleString() + '万';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Comparison Table
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+            comparisonList.forEach((item, idx) => {
+                const { compoundData, principalData } = computeGrowth(item.initial, item.monthly, item.rate, item.years);
+                const finalAsset = compoundData[compoundData.length - 1];
+                const finalPrincipal = principalData[principalData.length - 1];
+                const profit = finalAsset - finalPrincipal;
+                const profitRate = finalPrincipal > 0 ? ((profit / finalPrincipal) * 100).toFixed(1) : '0';
+
+                const tr = document.createElement('tr');
+                tr.className = 'comparison-row border-b border-gray-100';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-medium" style="color:${COLORS[idx % COLORS.length]}">${item.name}</td>
+                    <td class="py-2.5 px-3 text-right text-gray-600">${item.rate}%</td>
+                    <td class="py-2.5 px-3 text-right text-gray-600">${formatMan(finalPrincipal)}</td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-gray-800">${formatMan(finalAsset)}</td>
+                    <td class="py-2.5 px-3 text-right text-green-600 font-medium">+${formatMan(profit)}</td>
+                    <td class="py-2.5 px-3 text-right text-indigo-600 font-medium">+${profitRate}%</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <button class="text-red-400 hover:text-red-600 font-bold text-lg transition" data-idx="${idx}">&times;</button>
+                    </td>
+                `;
+                tr.querySelector('button').addEventListener('click', () => {
+                    comparisonList.splice(idx, 1);
+                    updateComparison();
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
