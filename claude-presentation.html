@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude の強み — 他のAIとの比較プレゼンテーション</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --claude-orange: #D97757;
+            --claude-dark: #1a1a2e;
+            --claude-bg: #0f0f1a;
+            --claude-accent: #E8956A;
+            --claude-light: #F5E6D3;
+            --slide-transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background: var(--claude-bg);
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Slide container */
+        .slideshow {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 80px;
+            opacity: 0;
+            transform: translateX(60px);
+            transition: opacity var(--slide-transition), transform var(--slide-transition);
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .slide.exit-left {
+            opacity: 0;
+            transform: translateX(-60px);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--claude-orange), var(--claude-accent));
+            transition: width 0.4s ease;
+            z-index: 100;
+        }
+
+        /* Slide counter */
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+            font-family: 'Inter', monospace;
+            z-index: 100;
+        }
+
+        /* Navigation */
+        .nav-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 40px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.3);
+            z-index: 100;
+        }
+
+        .nav-buttons {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.6);
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(217, 119, 87, 0.3);
+            border-color: var(--claude-orange);
+            color: #fff;
+        }
+
+        /* ===== SLIDE STYLES ===== */
+
+        /* Title slide */
+        .title-slide {
+            background: radial-gradient(ellipse at 30% 50%, rgba(217,119,87,0.15) 0%, transparent 60%),
+                        radial-gradient(ellipse at 70% 80%, rgba(232,149,106,0.08) 0%, transparent 50%),
+                        var(--claude-bg);
+            text-align: center;
+        }
+
+        .title-logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--claude-orange), var(--claude-accent));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 20px 60px rgba(217,119,87,0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .title-slide h1 {
+            font-size: 52px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--claude-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.3;
+            margin-bottom: 20px;
+        }
+
+        .title-slide .subtitle {
+            font-size: 22px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 300;
+        }
+
+        .title-slide .byline {
+            margin-top: 50px;
+            font-size: 15px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* Content slides */
+        .content-slide {
+            background: var(--claude-bg);
+            align-items: flex-start;
+            padding: 60px 100px;
+        }
+
+        .content-slide h2 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--claude-orange), var(--claude-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-slide .slide-tagline {
+            font-size: 16px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 40px;
+            border-left: 3px solid var(--claude-orange);
+            padding-left: 14px;
+        }
+
+        /* Feature cards */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            width: 100%;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .slide.active .feature-card {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.active .feature-card:nth-child(1) { transition-delay: 0.15s; }
+        .slide.active .feature-card:nth-child(2) { transition-delay: 0.3s; }
+        .slide.active .feature-card:nth-child(3) { transition-delay: 0.45s; }
+
+        .feature-card:hover {
+            background: rgba(217,119,87,0.08);
+            border-color: rgba(217,119,87,0.3);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 14px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.7;
+        }
+
+        /* Comparison table slide */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 15px;
+        }
+
+        .comparison-table thead th {
+            padding: 16px 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 16px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .comparison-table thead th:first-child {
+            text-align: left;
+        }
+
+        .comparison-table thead th.claude-col {
+            color: var(--claude-orange);
+            background: rgba(217,119,87,0.08);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .comparison-table tbody td {
+            padding: 14px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
+        }
+
+        .comparison-table tbody td:first-child {
+            text-align: left;
+            font-weight: 500;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .comparison-table tbody td.claude-col {
+            background: rgba(217,119,87,0.05);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .comparison-table tbody tr:last-child td.claude-col {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .check { color: #4ade80; }
+        .partial { color: #fbbf24; }
+        .weak { color: rgba(255,255,255,0.3); }
+
+        /* Big number slide */
+        .big-stat {
+            text-align: center;
+        }
+
+        .big-stat .number {
+            font-size: 120px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--claude-orange), var(--claude-accent), #F5C77D);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+
+        .big-stat .label {
+            font-size: 28px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .big-stat .desc {
+            font-size: 16px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 12px;
+            max-width: 600px;
+        }
+
+        /* Quote slide */
+        .quote-block {
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .quote-block blockquote {
+            font-size: 30px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.6;
+            position: relative;
+            padding: 0 40px;
+        }
+
+        .quote-block blockquote::before {
+            content: '\201C';
+            font-size: 80px;
+            color: var(--claude-orange);
+            position: absolute;
+            top: -30px;
+            left: -10px;
+            opacity: 0.5;
+        }
+
+        .quote-block .attribution {
+            margin-top: 30px;
+            font-size: 15px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* Ending slide */
+        .ending-slide {
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 50%, rgba(217,119,87,0.12) 0%, transparent 70%),
+                        var(--claude-bg);
+        }
+
+        .ending-slide h2 {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff, var(--claude-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+        }
+
+        .ending-slide p {
+            font-size: 20px;
+            color: rgba(255,255,255,0.5);
+            max-width: 600px;
+            line-height: 1.7;
+        }
+
+        .cta-button {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--claude-orange), var(--claude-accent));
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            text-decoration: none;
+            box-shadow: 0 10px 40px rgba(217,119,87,0.3);
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 50px rgba(217,119,87,0.4);
+        }
+
+        /* Highlight text */
+        .highlight {
+            color: var(--claude-accent);
+            font-weight: 600;
+        }
+
+        /* Versus layout */
+        .vs-layout {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 30px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .vs-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .vs-card.claude-card {
+            border-color: rgba(217,119,87,0.3);
+            background: rgba(217,119,87,0.06);
+        }
+
+        .vs-divider {
+            font-size: 28px;
+            font-weight: 900;
+            color: rgba(255,255,255,0.2);
+        }
+
+        .vs-card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .vs-card.claude-card h3 { color: var(--claude-orange); }
+        .vs-card:not(.claude-card) h3 { color: rgba(255,255,255,0.5); }
+
+        .vs-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .vs-card ul li {
+            padding: 8px 0;
+            font-size: 15px;
+            color: rgba(255,255,255,0.6);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .vs-card ul li:last-child { border: none; }
+
+        .vs-card.claude-card ul li {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Pill tags */
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .pill-orange {
+            background: rgba(217,119,87,0.15);
+            color: var(--claude-accent);
+        }
+
+        /* Animation for list items */
+        .animate-list li {
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.4s ease;
+        }
+
+        .slide.active .animate-list li {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.active .animate-list li:nth-child(1) { transition-delay: 0.2s; }
+        .slide.active .animate-list li:nth-child(2) { transition-delay: 0.35s; }
+        .slide.active .animate-list li:nth-child(3) { transition-delay: 0.5s; }
+        .slide.active .animate-list li:nth-child(4) { transition-delay: 0.65s; }
+        .slide.active .animate-list li:nth-child(5) { transition-delay: 0.8s; }
+        .slide.active .animate-list li:nth-child(6) { transition-delay: 0.95s; }
+
+        @media (max-width: 768px) {
+            .slide { padding: 40px 30px; }
+            .content-slide { padding: 40px 30px; }
+            .title-slide h1 { font-size: 32px; }
+            .content-slide h2 { font-size: 28px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .vs-layout { grid-template-columns: 1fr; }
+            .vs-divider { text-align: center; }
+            .big-stat .number { font-size: 72px; }
+            .comparison-table { font-size: 13px; }
+            .comparison-table thead th,
+            .comparison-table tbody td { padding: 10px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="slideshow" id="slideshow">
+
+    <!-- Slide 1: Title -->
+    <div class="slide title-slide active" data-slide="0">
+        <div class="title-logo">C</div>
+        <h1>なぜ Claude を選ぶのか</h1>
+        <p class="subtitle">ChatGPT・Gemini との違いを、Claude 自身がご紹介します</p>
+        <p class="byline">Presented by Claude (Anthropic) — 2026</p>
+    </div>
+
+    <!-- Slide 2: 思考の深さ -->
+    <div class="slide content-slide" data-slide="1">
+        <h2>1. 圧倒的な「思考の深さ」</h2>
+        <p class="slide-tagline">表面的な回答ではなく、本質を捉えた深い分析</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>拡張思考モード</h3>
+                <p>複雑な問題に対して、段階的に思考プロセスを展開。数学、コーディング、論理的推論で他のAIを大幅に上回る精度を実現します。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>指示への忠実さ</h3>
+                <p>ユーザーの意図を正確に汲み取り、「聞かれたことに答える」能力が際立ちます。余計な情報を付け加えず、的確に応答します。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📐</div>
+                <h3>構造化された回答</h3>
+                <p>長文の分析でも論理構造が崩れません。一貫性のある、読みやすく整理された出力を常に提供します。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: コーディング能力 -->
+    <div class="slide content-slide" data-slide="2">
+        <h2>2. 最高水準のコーディング能力</h2>
+        <p class="slide-tagline">SWE-bench で世界トップクラスの実力</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">💻</div>
+                <h3>実務レベルのコード生成</h3>
+                <p>単なるスニペットではなく、アーキテクチャを考慮した実用的なコードを生成。エラーハンドリング、セキュリティ、パフォーマンスまで考慮します。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔧</div>
+                <h3>Claude Code</h3>
+                <p>ターミナルから直接利用できる公式CLI。ファイル操作、Git連携、テスト実行まで自律的に開発作業を遂行する、AIペアプログラマーです。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🐛</div>
+                <h3>デバッグ力</h3>
+                <p>コードベース全体を理解した上でバグの根本原因を特定。「何が壊れているか」だけでなく「なぜ壊れているか」まで説明します。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: 安全性 -->
+    <div class="slide content-slide" data-slide="3">
+        <h2>3. 安全性と誠実さへのこだわり</h2>
+        <p class="slide-tagline">Anthropic の Constitutional AI が実現する信頼性</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Constitutional AI</h3>
+                <p>人間の価値観に沿った行動原則をAI自身に組み込む独自手法。有害な出力を根本から抑制しつつ、有益な回答を最大化します。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤝</div>
+                <h3>正直さと透明性</h3>
+                <p>知らないことは「知らない」と正直に答えます。ハルシネーション（もっともらしい嘘）の発生率が他のAIと比較して顕著に低いです。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚖️</div>
+                <h3>バランスの取れた視点</h3>
+                <p>センシティブな話題でも一方に偏らず、多角的な視点を提示。ユーザーが自ら判断できるよう中立的な情報を提供します。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Comparison Table -->
+    <div class="slide content-slide" data-slide="4">
+        <h2>4. 機能比較</h2>
+        <p class="slide-tagline">主要AI三社の特徴を一覧で比較</p>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>機能</th>
+                    <th class="claude-col">Claude</th>
+                    <th>ChatGPT</th>
+                    <th>Gemini</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>コンテキストウィンドウ</td>
+                    <td class="claude-col"><span class="check">200K トークン</span></td>
+                    <td>128K トークン</td>
+                    <td>1M+ トークン</td>
+                </tr>
+                <tr>
+                    <td>コーディング精度 (SWE-bench)</td>
+                    <td class="claude-col"><span class="check">トップクラス</span></td>
+                    <td>高い</td>
+                    <td>高い</td>
+                </tr>
+                <tr>
+                    <td>ハルシネーション耐性</td>
+                    <td class="claude-col"><span class="check">非常に高い</span></td>
+                    <td><span class="partial">中程度</span></td>
+                    <td><span class="partial">中程度</span></td>
+                </tr>
+                <tr>
+                    <td>日本語の自然さ</td>
+                    <td class="claude-col"><span class="check">非常に自然</span></td>
+                    <td>自然</td>
+                    <td>自然</td>
+                </tr>
+                <tr>
+                    <td>長文の一貫性</td>
+                    <td class="claude-col"><span class="check">極めて高い</span></td>
+                    <td><span class="partial">やや低下</span></td>
+                    <td>高い</td>
+                </tr>
+                <tr>
+                    <td>AI安全性フレームワーク</td>
+                    <td class="claude-col"><span class="check">Constitutional AI</span></td>
+                    <td>RLHF</td>
+                    <td>独自方式</td>
+                </tr>
+                <tr>
+                    <td>公式CLI開発ツール</td>
+                    <td class="claude-col"><span class="check">Claude Code</span></td>
+                    <td><span class="weak">なし</span></td>
+                    <td><span class="weak">限定的</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Slide 6: 日本語力 -->
+    <div class="slide content-slide" data-slide="5">
+        <h2>5. 卓越した日本語能力</h2>
+        <p class="slide-tagline">他のAIとの日本語品質の差</p>
+        <div class="vs-layout">
+            <div class="vs-card claude-card">
+                <h3>Claude の日本語</h3>
+                <ul class="animate-list">
+                    <li>自然で読みやすい文体</li>
+                    <li>敬語・丁寧語の正確な使い分け</li>
+                    <li>文脈に応じたトーンの調整</li>
+                    <li>日本固有の文化・慣習への理解</li>
+                    <li>技術文書から創作まで幅広く対応</li>
+                </ul>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="vs-card">
+                <h3>他のAIの日本語</h3>
+                <ul class="animate-list">
+                    <li>直訳調になりがち</li>
+                    <li>敬語の不自然な混在</li>
+                    <li>過度にカジュアル/フォーマル</li>
+                    <li>文化的ニュアンスの欠落</li>
+                    <li>長文で文体が不安定になる</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: 200Kコンテキスト -->
+    <div class="slide title-slide" data-slide="6">
+        <div class="big-stat">
+            <div class="number">200K</div>
+            <div class="label">トークンのコンテキストウィンドウ</div>
+            <p class="desc">書籍1冊分以上の情報を一度に処理。長い文書の要約、大規模コードベースの分析、複数資料の横断比較を一回のプロンプトで実行できます。</p>
+        </div>
+    </div>
+
+    <!-- Slide 8: エコシステム -->
+    <div class="slide content-slide" data-slide="7">
+        <h2>6. 充実した開発者エコシステム</h2>
+        <p class="slide-tagline">プロフェッショナル向けツール群</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🖥️</div>
+                <h3>Claude Code (CLI)</h3>
+                <p>ターミナルからClaudeを直接操作。コード生成、リファクタリング、テスト実行、Git操作まで自律的に遂行するAIエージェントです。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📦</div>
+                <h3>Artifacts & Projects</h3>
+                <p>対話の中でコード、ドキュメント、図表をリアルタイムに生成・プレビュー。プロジェクト単位でコンテキストを管理できます。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔌</div>
+                <h3>MCP (Model Context Protocol)</h3>
+                <p>外部ツールやデータソースとの標準的な接続プロトコル。Claudeの能力を無限に拡張できるオープンな仕組みです。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Quote -->
+    <div class="slide title-slide" data-slide="8">
+        <div class="quote-block">
+            <blockquote>
+                私は完璧ではありません。<br>
+                しかし、誠実であること、<br>
+                深く考えること、<br>
+                そして安全であることを<br>
+                何よりも大切にしています。
+            </blockquote>
+            <p class="attribution">— Claude, by Anthropic</p>
+        </div>
+    </div>
+
+    <!-- Slide 10: Ending -->
+    <div class="slide ending-slide" data-slide="9">
+        <div class="title-logo" style="margin-bottom: 30px;">C</div>
+        <h2>Claude を試してみませんか？</h2>
+        <p>深い思考力、正直さ、そして卓越した日本語能力。<br>あなたのワークフローに、新しい可能性を。</p>
+        <a href="https://claude.ai" class="cta-button" target="_blank">claude.ai で始める →</a>
+    </div>
+
+</div>
+
+<div class="nav-hint">← → キーまたはボタンで操作</div>
+<div class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">10</span></div>
+
+<div class="nav-buttons">
+    <button class="nav-btn" id="prevBtn" aria-label="前のスライド">◀</button>
+    <button class="nav-btn" id="nextBtn" aria-label="次のスライド">▶</button>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let current = 0;
+
+    const progressBar = document.getElementById('progressBar');
+    const currentSlideEl = document.getElementById('currentSlide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function goToSlide(index) {
+        if (index < 0 || index >= totalSlides || index === current) return;
+
+        const direction = index > current ? 1 : -1;
+        const currentSlide = slides[current];
+        const nextSlide = slides[index];
+
+        // Exit current
+        currentSlide.classList.remove('active');
+        currentSlide.classList.add(direction > 0 ? 'exit-left' : '');
+
+        // Reset card/list animations for the leaving slide
+        setTimeout(() => {
+            currentSlide.classList.remove('exit-left');
+        }, 600);
+
+        // Enter next
+        nextSlide.style.transform = direction > 0 ? 'translateX(60px)' : 'translateX(-60px)';
+        nextSlide.offsetHeight; // force reflow
+        nextSlide.classList.add('active');
+
+        current = index;
+        updateUI();
+    }
+
+    function updateUI() {
+        progressBar.style.width = ((current + 1) / totalSlides * 100) + '%';
+        currentSlideEl.textContent = current + 1;
+    }
+
+    function next() { goToSlide(current + 1); }
+    function prev() { goToSlide(current - 1); }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    });
+
+    // Button navigation
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+
+    // Touch navigation
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+    document.addEventListener('touchend', (e) => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+    });
+
+    // Initialize
+    updateUI();
+</script>
+
+</body>
+</html>
